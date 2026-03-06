@@ -101,10 +101,15 @@ function M._register_adapters()
         },
       }, adapter_cfg.schema or {})
 
-      return require("codecompanion.adapters").extend(adapter_cfg.base, {
-        env = adapter_cfg.env,
-        schema = schema,
-      })
+      -- Pass down ALL other user configurations to CodeCompanion (e.g., handlers, url, parameters, env, opts)
+      local extend_config = vim.deepcopy(adapter_cfg)
+      extend_config.base = nil
+      extend_config.default = nil
+      extend_config.choices = nil
+      extend_config.schema = schema
+
+      -- Generate the extended adapter using vim.deepcopy output
+      return require("codecompanion.adapters").extend(adapter_cfg.base or "openai_compatible", extend_config)
     end
   end
 end

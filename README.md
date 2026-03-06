@@ -102,6 +102,12 @@ All available options format for `extensions.model_selector.opts`:
         "model-name",
         "model-name-2",
       },
+      -- 🔥 BONUS: You can pass ANY other CodeCompanion custom adapter properties here!
+      -- They will be forwarded natively. Examples:
+      -- handlers = { ... },
+      -- opts = { stream = true },
+      -- url = "https://...",
+      -- parameters = { ... },
     },
   },
 
