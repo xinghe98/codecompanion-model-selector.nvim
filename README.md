@@ -10,7 +10,7 @@ for dynamically switching adapters and models.
 - 📊 **Lualine component** showing active adapter/model
 - ⚡ **Auto-open new chat** session after switching (configurable)
 - 🎨 **Fully customizable** icons and prompts
-- 🧩 **Native CodeCompanion extension** — configure alongside spinner, etc.
+- 🧩 **Zero-config adapters** — define adapters once, plugin auto-registers them with CodeCompanion
 
 ## 📦 Installation
 
@@ -30,8 +30,14 @@ Add the plugin as a dependency of codecompanion.nvim:
       model_selector = {
         opts = {
           default_adapter = "yunwu",
-          models = {
+          adapters = {
             openrouter = {
+              base = "openai_compatible",
+              env = {
+                url = "https://openrouter.ai/api/v1",
+                api_key = "cmd:echo $OPENROUTER_KEY",
+                chat_url = "/chat/completions",
+              },
               default = "minimax/minimax-m2.5",
               choices = {
                 "minimax/minimax-m2.5",
@@ -40,15 +46,18 @@ Add the plugin as a dependency of codecompanion.nvim:
               },
             },
             deepseek = {
+              base = "deepseek",
+              env = {
+                api_key = "cmd:echo $DEEPSEEK_KEY",
+              },
               default = "deepseek-chat",
               choices = { "deepseek-chat", "deepseek-reasoner" },
             },
           },
         },
       },
-      -- other extensions ...
-      spinner = { opts = { style = "fidget" } },
     },
+    -- No need to define `adapters` — model_selector auto-registers them!
   },
 }
 ```
@@ -109,35 +118,32 @@ local comp_ai_model = require("cc_model_selector").get_lualine_component({
 })
 ```
 
-### CodeCompanion Adapter Integration
-
-Use `get_current_model()` in your adapter definitions:
-
-```lua
-local ms = require("cc_model_selector")
-
-adapters = {
-  yunwu = function()
-    return require("codecompanion.adapters").extend("openai_compatible", {
-      schema = {
-        model = {
-          default = ms.get_current_model("yunwu"),
-          choices = ms.config.models.yunwu.choices,
-        },
-      },
-    })
-  end,
-}
-```
-
 ## ⚙️ Configuration
 
 All options go under `extensions.model_selector.opts` in your CodeCompanion config:
 
 ```lua
 {
-  -- Adapter model definitions (required)
-  models = {},
+  -- Adapter definitions (required)
+  -- Each adapter includes connection info + model choices
+  adapters = {
+    my_adapter = {
+      base = "openai_compatible",   -- Base adapter to extend
+      env = {                       -- Connection / environment config
+        url = "https://api.example.com",
+        api_key = "cmd:echo $MY_KEY",
+        chat_url = "/v1/chat/completions",
+      },
+      schema = {                    -- Optional extra schema overrides
+        temperature = { default = 0.0 },
+      },
+      default = "model-name",      -- Default model
+      choices = {                   -- Available model choices
+        "model-name",
+        "model-name-2",
+      },
+    },
+  },
 
   -- Default active adapter
   default_adapter = nil,

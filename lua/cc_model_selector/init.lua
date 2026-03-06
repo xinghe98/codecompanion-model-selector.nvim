@@ -12,13 +12,20 @@ local M = {}
 ---@field prompt_adapter? string Adapter selection prompt
 ---@field notify_success? string Notification format (%s = adapter, %s = model)
 
+---@class CCModelSelectorAdapterConfig
+---@field base string Base adapter to extend (e.g. "openai_compatible", "deepseek")
+---@field env? table Environment / connection config (url, api_key, chat_url, ...)
+---@field schema? table Extra schema overrides (temperature, etc.)
+---@field default string Default model name
+---@field choices string[] Available model choices
+
 ---@class CCModelSelectorConfig
----@field models table<string, { default: string, choices: string[] }>
+---@field adapters table<string, CCModelSelectorAdapterConfig>
 ---@field default_adapter? string
 ---@field open_chat_on_switch? boolean
 ---@field icons? CCModelSelectorIcons
 local defaults = {
-  models = {},
+  adapters = {},
   default_adapter = nil,
   open_chat_on_switch = true,
   icons = {
@@ -35,19 +42,22 @@ M.config = vim.deepcopy(defaults)
 M.active_adapter = ""
 M.current = {}
 
---- 初始化插件（由 CodeCompanion extension 入口或用户手动调用）
+--- 初始化插件（由 CodeCompanion extension 入口调用）
 ---@param opts? CCModelSelectorConfig
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), opts or {})
 
   -- 初始化每个 adapter 的当前模型为 default
   M.current = {}
-  for name, config in pairs(M.config.models) do
-    M.current[name] = config.default
+  for name, adapter_cfg in pairs(M.config.adapters) do
+    M.current[name] = adapter_cfg.default
   end
 
   -- 设置默认活跃 adapter
-  M.active_adapter = M.config.default_adapter or next(M.config.models) or ""
+  M.active_adapter = M.config.default_adapter or next(M.config.adapters) or ""
+
+  -- 向 CodeCompanion config 注入 adapters
+  M._register_adapters()
 
   -- 注册用户命令
   vim.api.nvim_create_user_command("CCSelectModel", function(cmd_opts)
@@ -59,10 +69,35 @@ function M.setup(opts)
   end, {
     nargs = "?",
     complete = function()
-      return vim.tbl_keys(M.config.models)
+      return vim.tbl_keys(M.config.adapters)
     end,
     desc = "Select CodeCompanion adapter/model",
   })
+end
+
+--- 自动向 CodeCompanion 注册所有 adapter
+function M._register_adapters()
+  local ok, cc_config = pcall(require, "codecompanion.config")
+  if not ok then
+    return
+  end
+
+  for name, adapter_cfg in pairs(M.config.adapters) do
+    -- 每个 adapter 注册为一个 factory function（惰性执行）
+    cc_config.adapters.http[name] = function()
+      local schema = vim.tbl_deep_extend("force", {
+        model = {
+          default = M.get_current_model(name),
+          choices = adapter_cfg.choices or {},
+        },
+      }, adapter_cfg.schema or {})
+
+      return require("codecompanion.adapters").extend(adapter_cfg.base, {
+        env = adapter_cfg.env,
+        schema = schema,
+      })
+    end
+  end
 end
 
 --- 获取 adapter 当前使用的模型
@@ -70,16 +105,15 @@ end
 ---@return string
 function M.get_current_model(adapter_name)
   return M.current[adapter_name]
-    or (M.config.models[adapter_name] and M.config.models[adapter_name].default)
+    or (M.config.adapters[adapter_name] and M.config.adapters[adapter_name].default)
     or ""
 end
 
 --- 弹出 vim.ui.select 浮窗切换模型
---- 切换模型时会同时切换对应的 adapter，并可通过 CodeCompanionChat 命令开启新会话
 ---@param adapter_name string
 function M.select_model(adapter_name)
-  local config = M.config.models[adapter_name]
-  if not config then
+  local adapter_cfg = M.config.adapters[adapter_name]
+  if not adapter_cfg then
     vim.notify("Unknown adapter: " .. adapter_name, vim.log.levels.ERROR)
     return
   end
@@ -88,7 +122,7 @@ function M.select_model(adapter_name)
 
   -- 构建带有当前选中标记的显示列表
   local display_items = {}
-  for _, model in ipairs(config.choices) do
+  for _, model in ipairs(adapter_cfg.choices) do
     local prefix = (model == M.current[adapter_name])
         and (icons.active or "● ")
       or (icons.inactive or "  ")
@@ -99,7 +133,7 @@ function M.select_model(adapter_name)
     prompt = string.format(icons.prompt_model or "🤖 Select %s Model:", adapter_name),
   }, function(choice, idx)
     if choice and idx then
-      local new_model = config.choices[idx]
+      local new_model = adapter_cfg.choices[idx]
       M.current[adapter_name] = new_model
       M.active_adapter = adapter_name
 
@@ -115,12 +149,11 @@ end
 
 --- 弹出 adapter 选择器，先选 adapter 再选模型
 function M.select_adapter_and_model()
-  local adapter_names = vim.tbl_keys(M.config.models)
+  local adapter_names = vim.tbl_keys(M.config.adapters)
   table.sort(adapter_names)
 
   local icons = M.config.icons or {}
 
-  -- 构建显示列表: adapter 名 + 当前模型 + 活跃标记
   local display_items = {}
   for _, name in ipairs(adapter_names) do
     local active = (name == M.active_adapter) and (icons.adapter_active or " ★") or ""
@@ -148,7 +181,6 @@ function M.get_lualine_component(opts)
       end
       local adapter = M.active_adapter
       local model = M.current[adapter] or "?"
-      -- 取最后一段作为短名称 (e.g. "minimax/minimax-m2.5" → "minimax-m2.5")
       local short = model:match("[^/]+$") or model
       return adapter .. "(" .. short .. ")"
     end,
