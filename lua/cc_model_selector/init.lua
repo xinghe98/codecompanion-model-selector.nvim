@@ -85,10 +85,19 @@ function M._register_adapters()
   for name, adapter_cfg in pairs(M.config.adapters) do
     -- 每个 adapter 注册为一个 factory function（惰性执行）
     cc_config.adapters.http[name] = function()
+      local cc_choices = {}
+      if type(adapter_cfg.choices) == "table" then
+        for _, v in ipairs(adapter_cfg.choices) do
+          table.insert(cc_choices, v)
+          -- Inject a fallback dict entry so adapters like `deepseek` don't crash when indexing `choices[model]`
+          cc_choices[v] = { opts = { can_use_tools = true } }
+        end
+      end
+
       local schema = vim.tbl_deep_extend("force", {
         model = {
           default = M.get_current_model(name),
-          choices = adapter_cfg.choices or {},
+          choices = cc_choices,
         },
       }, adapter_cfg.schema or {})
 
