@@ -130,7 +130,7 @@ All available options format for `extensions.model_selector.opts`:
 
 ---
 
-## � Usage
+##  Usage
 
 ### UI Commands & Keymaps
 
@@ -182,5 +182,5 @@ require('lualine').setup({
 
 ---
 
-## �📄 License
+## 📄 License
 MIT
