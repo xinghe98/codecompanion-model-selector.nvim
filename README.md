@@ -4,6 +4,8 @@ A lightweight, elegant extension for [CodeCompanion.nvim](https://github.com/oli
 
 **Say goodbye to `adapters.lua` boilerplate!** Configure your adapters, connection details, and model options in one single place. The plugin handles registering them with CodeCompanion automatically.
 
+https://private-user-images.githubusercontent.com/47097088/559115330-c3082601-b82c-4f53-8b5f-6d552828199c.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzI4NTA1MjEsIm5iZiI6MTc3Mjg1MDIyMSwicGF0aCI6Ii80NzA5NzA4OC81NTkxMTUzMzAtYzMwODI2MDEtYjgyYy00ZjUzLThiNWYtNmQ1NTI4MjgxOTljLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjAzMDclMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwMzA3VDAyMjM0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWU2NzgzZTdkZDk1YWI5YTBkNDU1ODM2N2U4OGY2YmU3NDFhYmEyM2I1NTlhMDZkMGUyMjAzOGU4MjljYjA3OWUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.-3B4qtJopwDVYMwzgDX4NNc7RctmCgAunlbZG1jwymI
+
 ## ✨ Features
 
 - 🧩 **Zero-config mapping**: Define adapters inside the extension config once. No need to write manual factory functions or `require` inside an `adapters.lua` file!
